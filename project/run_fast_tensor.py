@@ -114,31 +114,102 @@ class FastTrain:
         print(f'Average time per epoch {total_epoch_time/max_epochs} (for {max_epochs} epochs)')
 
 
+def main():
+    """
+    Run training experiments for all datasets using CPU backend.
+    Records and prints performance metrics for each dataset.
+    """
+    # Common parameters for all experiments
+    HIDDEN = 100
+    RATE = 0.05
+    MAX_EPOCHS = 100
+    PTS = 50
+
+    # Dataset configurations
+    dataset_configs = [
+        ("Simple", "simple", PTS),
+        ("XOR", "xor", PTS),
+        ("Split", "split", PTS)
+    ]
+
+    # Initialize backend
+    backend = FastTensorBackend
+
+    # Results storage
+    all_results = {}
+
+    def custom_log_fn(epoch, total_loss, correct, losses):
+        """Custom logging function to capture metrics."""
+        if epoch % 10 == 0 or epoch == MAX_EPOCHS - 1:
+            accuracy = correct / PTS * 100
+            return {
+                'epoch': epoch,
+                'total_loss': float(total_loss),
+                'accuracy': accuracy,
+                'correct': correct
+            }
+        return None
+
+    # Run experiments for each dataset
+    for dataset_name, dataset_type, pts in dataset_configs:
+        print(f"\n{'=' * 50}")
+        print(f"Training on {dataset_name} Dataset")
+        print(f"{'=' * 50}")
+
+        # Get dataset
+        if dataset_type == "xor":
+            data = datasets["Xor"](pts)
+        elif dataset_type == "simple":
+            data = datasets["Simple"](pts)
+        else:  # split
+            data = datasets["Split"](pts)
+
+        # Initialize trainer
+        trainer = FastTrain(HIDDEN, backend=backend)
+
+        # Training metrics storage
+        results = []
+
+        # Custom logging function for this run
+        def logging_callback(epoch, total_loss, correct, losses):
+            result = custom_log_fn(epoch, total_loss, correct, losses)
+            if result is not None:
+                results.append(result)
+                print(f"Epoch {epoch:3d} | "
+                      f"Loss: {float(total_loss):10.4f} | "
+                      f"Accuracy: {correct / PTS * 100:6.2f}% | "
+                      f"Correct: {correct:3d}/{PTS}")
+
+        # Train model and time execution
+        start_time = time.time()
+        trainer.train(data, RATE, max_epochs=MAX_EPOCHS, log_fn=logging_callback)
+        total_time = time.time() - start_time
+
+        # Store results
+        all_results[dataset_name] = {
+            'training_history': results,
+            'total_time': total_time,
+            'avg_epoch_time': total_time / MAX_EPOCHS
+        }
+
+        # Print summary for this dataset
+        print(f"\nResults for {dataset_name} Dataset:")
+        print(f"Total training time: {total_time:.2f} seconds")
+        print(f"Average time per epoch: {total_time / MAX_EPOCHS:.4f} seconds")
+        print(f"Final accuracy: {results[-1]['accuracy']:.2f}%")
+        print(f"Final loss: {results[-1]['total_loss']:.4f}")
+
+    # Print overall summary
+    print("\n" + "=" * 50)
+    print("OVERALL TRAINING SUMMARY")
+    print("=" * 50)
+    for dataset_name, results in all_results.items():
+        print(f"\n{dataset_name} Dataset:")
+        print(f"- Final Accuracy: {results['training_history'][-1]['accuracy']:.2f}%")
+        print(f"- Final Loss: {results['training_history'][-1]['total_loss']:.4f}")
+        print(f"- Average Epoch Time: {results['avg_epoch_time']:.4f} seconds")
+        print(f"- Total Training Time: {results['total_time']:.2f} seconds")
+
+
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--PTS", type=int, default=50, help="number of points")
-    parser.add_argument("--HIDDEN", type=int, default=10, help="number of hiddens")
-    parser.add_argument("--RATE", type=float, default=0.05, help="learning rate")
-    parser.add_argument("--BACKEND", default="cpu", help="backend mode")
-    parser.add_argument("--DATASET", default="simple", help="dataset")
-    parser.add_argument("--PLOT", default=False, help="dataset")
-
-    args = parser.parse_args()
-
-    PTS = args.PTS
-
-    if args.DATASET == "xor":
-        data = minitorch.datasets["Xor"](PTS)
-    elif args.DATASET == "simple":
-        data = minitorch.datasets["Simple"](PTS)
-    elif args.DATASET == "split":
-        data = minitorch.datasets["Split"](PTS)
-
-    HIDDEN = int(args.HIDDEN)
-    RATE = args.RATE
-
-    FastTrain(
-        HIDDEN, backend=FastTensorBackend if args.BACKEND != "gpu" else GPUBackend
-    ).train(data, RATE)
+    main()

@@ -161,9 +161,9 @@ def tensor_map(
         in_strides: Strides,
     ) -> None:
         aligned = (
-                len(out_strides) == len(in_strides)
-                and (out_strides == in_strides).all()
-                and (out_shape == in_shape).all()
+            len(out_strides) == len(in_strides)
+            and (out_strides == in_strides).all()
+            and (out_shape == in_shape).all()
         )
 
         if aligned:
@@ -218,11 +218,11 @@ def tensor_zip(
         b_strides: Strides,
     ) -> None:
         aligned_strides = (
-                len(out_strides) == len(a_strides) == len(b_strides)
-                and (out_strides == a_strides).all()
-                and (out_strides == b_strides).all()
-                and (out_shape == a_shape).all()
-                and (out_shape == b_shape).all()
+            len(out_strides) == len(a_strides) == len(b_strides)
+            and (out_strides == a_strides).all()
+            and (out_strides == b_strides).all()
+            and (out_shape == a_shape).all()
+            and (out_shape == b_shape).all()
         )
 
         if aligned_strides:
@@ -335,7 +335,7 @@ def _tensor_matrix_multiply(
         None : Fills in `out`
 
     """
-    #TODO
+    # TODO
     batch_stride_a = a_strides[0] if a_shape[0] > 1 else 0
     batch_stride_b = b_strides[0] if b_shape[0] > 1 else 0
 
@@ -357,7 +357,9 @@ def _tensor_matrix_multiply(
                     pos_a += a_strides[2]
                     pos_b += b_strides[1]
 
-                out[batch * out_strides[0] + row * out_strides[1] + col * out_strides[2]] = result
+                out[
+                    batch * out_strides[0] + row * out_strides[1] + col * out_strides[2]
+                ] = result
 
 
 tensor_matrix_multiply = njit(parallel=True, fastmath=True)(_tensor_matrix_multiply)
